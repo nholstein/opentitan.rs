@@ -25,6 +25,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "earlgrey-uart"
+version = "0.1.0"
+dependencies = [
+ "earlgrey-registers",
+]
+
+[[package]]
 name = "riscv"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

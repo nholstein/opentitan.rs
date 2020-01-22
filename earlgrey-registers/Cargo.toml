@@ -1,0 +1,10 @@
+[package]
+name = "earlgrey-registers"
+version = "0.1.0"
+authors = ["Nathan Holstein <nathan.holstein@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+riscv = "0.5.4"
+bare-metal = "0.2.5"
+vcell = "0.1.2"

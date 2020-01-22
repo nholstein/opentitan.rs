@@ -1,0 +1,22 @@
+[package]
+name = "earlgrey-uart"
+version = "0.1.0"
+authors = ["Nathan Holstein <nathan.holstein@gmail.com>"]
+edition = "2018"
+
+[features]
+default = [ "ibex" ]
+ibex = []
+
+[lib]
+crate-type = ["staticlib"]
+path = "uart.rs"
+
+[build]
+target = "riscv32i-unknown-none-elf"
+
+[target.riscv32i-unknown-none-elf]
+linker = "riscv32-unknown-elf-gcc"
+
+[dependencies]
+earlgrey-registers = { path="../earlgrey-registers", version="0.1.0" }
