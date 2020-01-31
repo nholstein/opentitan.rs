@@ -8,3 +8,6 @@ edition = "2018"
 riscv = "0.5.4"
 bare-metal = "0.2.5"
 vcell = "0.1.2"
+
+[lib]
+path = "lib.rs"
