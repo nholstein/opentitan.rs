@@ -3,16 +3,16 @@ use core::fmt;
 
 extern crate earlgrey_registers;
 
-#[cfg(ibex = "verilator")]
+#[cfg(feature = "verilator")]
 const CLOCK_FREQ_HZ: u32 = 500_000;
 
-#[cfg(not(ibex = "verilator"))]
+#[cfg(not(feature = "verilator"))]
 const CLOCK_FREQ_HZ: u32 = 50_000_000;
 
-#[cfg(ibex = "verilator")]
+#[cfg(feature = "verilator")]
 const BAUD_RATE: u32 = 9600;
 
-#[cfg(not(ibex = "verilator"))]
+#[cfg(not(feature = "verilator"))]
 const BAUD_RATE: u32 = 230400;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

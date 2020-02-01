@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Nathan Holstein <nathan.holstein@gmail.com>"]
 edition = "2018"
 
+[features]
+default = [ "verilator" ]
+verilator = []
+
 [lib]
 crate-type = ["staticlib"]
 
