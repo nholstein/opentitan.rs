@@ -94,3 +94,15 @@ Hopefully, this can help inform decisions regarding OpenTitan's [consideration t
 
 That said, there are still some missing features. Primarily, this is supposed to implement a UART echo routine, but the UART appears misconfigured for reads.
 So, a bit of debugging, and perhaps IRQ intergration. Aside from that, this code likely won't gain any additional features.
+
+Outstanding questions:
+
+ * `svd2rust` generates single-bit-writrs which don't require use of `unsafe`. However, multi-byte writers are marked `unsafe`.
+    Is it possible to avoid this for registers to which any value can be written?
+    (Compare [UART baud rate multiplier](https://nholstein.github.io/earlgrey_registers/uart/ctrl/struct.NCO_W.html#method.bits) to [UART date write](https://nholstein.github.io/earlgrey_registers/uart/wdata/index.html).)
+
+ * The OpenTitan `hello_world.elf` binary is ~67K, compared to `earlgrey_uart.elf` weighing in at ~1.1M, when `hello_world` has many more features.
+   The small bits of disassembled Rust instructions I've reviewed seem space efficient and wouldn't explain the difference.
+   Perhaps there's some necessary GC to perform during linking?
+
+ * Meson vs. Make?
