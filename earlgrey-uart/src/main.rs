@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(lang_items)]
 #![feature(asm)]
+#![feature(start)]
 
 pub mod uart;
 use uart::UART;
@@ -26,9 +27,8 @@ fn abort() -> ! {
 	}
 }
 
-#[no_mangle]
-extern "C"
-fn main() -> ! {
+#[start]
+fn main(_: isize, _: *const *const u8) -> isize {
 	let peripherals = earlgrey_registers::Peripherals::take().unwrap();
 	let mut uart = UART::new(&peripherals, UART::DEFAULT_BAUD).unwrap();
 
@@ -41,4 +41,6 @@ fn main() -> ! {
 		let byte = uart.get_byte();
 		uart.put_byte(byte);
 	}
+
+	0
 }
