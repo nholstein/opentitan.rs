@@ -27,24 +27,19 @@ _stack_start = ORIGIN(ram) + LENGTH(ram);
 
 SECTIONS {
   /**
-   * The flash header. This will eventually contain other stuff, like a
-   * signature, but for now it's just the entry point at offset zero.
+   * We omit the flash header, as for some reason it was ending up with
+   * four bytes, 0x20000004, the address of _start/.crt.
    */
-  .flash_header ORIGIN(flash): ALIGN(4) {
-    /**
-     * NOTE:ld scripts do not provide a mechanism to refer to ENTRY,
-     * so we just harcode the _start symbol.
-     */
-    LONG(_start)
-  } > flash
 
   /**
    * C runtime (CRT) section, containing program initialization code.
    *
    * We don't use ENTRY, so the start of |flash| acts as the entrypoint. Since
    * the CRT is the first thing that needs to run, it goes at the top.
+   *
+   * Without a flash header we set the origin to the start of flash.
    */
-  .crt : ALIGN(4) {
+  .crt ORIGIN(flash): ALIGN(4) {
     KEEP(*(.crt))
     *(.crt)
   } > flash
