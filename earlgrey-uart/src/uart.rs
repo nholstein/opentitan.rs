@@ -78,24 +78,23 @@ impl UART<'_> {
 		Ok(())
 	}
 
-	pub fn putc(&self, c: char) {
+	pub fn put_byte(&self, byte: u8) {
 		while self.0.status.read().txfull().bit() {
 		}
 
-		let u = c as u8;
-		self.0.wdata.write(|w| unsafe { w.bits(u) })
+		self.0.wdata.write(|w| unsafe { w.bits(byte) })
 	}
 
-	pub fn write(&self, message: &str) {
-		for b in message.chars() {
-			self.putc(b);
-		}
-	}
-
-	pub fn getc(&self) -> char {
+	pub fn get_byte(&self) -> u8 {
 		while self.0.status.read().rxempty().bit() {
 		}
 
-		self.0.rdata.read().bits() as char
+		self.0.rdata.read().bits()
+	}
+
+	pub fn write(&self, message: &str) {
+		for byte in message.bytes() {
+			self.put_byte(byte);
+		}
 	}
 }

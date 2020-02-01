@@ -38,6 +38,6 @@ fn main() -> ! {
 	uart.write(&"Hello, Rust\r\n");
 
 	loop {
-		uart.putc(uart.getc());
+		uart.put_byte(uart.get_byte());
 	}
 }
