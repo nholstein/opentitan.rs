@@ -35,7 +35,7 @@ fn main() -> ! {
 	// Ensure we can access other modules within peripherals
 	let _aes = &peripherals.AES;
 
-	uart.write(&"Hello, Rust");
+	uart.write(&"Hello, Rust\r\n");
 
 	loop {
 		uart.putc(uart.getc());
