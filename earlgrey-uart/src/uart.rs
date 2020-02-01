@@ -42,7 +42,7 @@ impl UART<'_> {
 
 	pub fn new<'a>(peripherals: &'a earlgrey_registers::Peripherals, baud: u32) -> Result<UART, Error> {
 		let uart = UART(&peripherals.UART);
-		uart.init(BAUD_RATE, true, true)?;
+		uart.init(baud, false, false)?;
 		Ok(uart)
 	}
 
@@ -52,7 +52,6 @@ impl UART<'_> {
 		// in a nostd crate.
 		let nco = cast::u16(nco)?;
 
-		self.0.intr_enable.write(|w| w);
 		self.0.ctrl.write(|w| {
 			unsafe { w.nco().bits(nco); }
 
@@ -75,6 +74,7 @@ impl UART<'_> {
 			w.txrst().set_bit()
 		});
 
+		self.0.intr_enable.write(|w| w);
 		Ok(())
 	}
 
