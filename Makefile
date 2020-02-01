@@ -30,6 +30,9 @@ EXAMPLES ?= \
 	earlgrey-uart \
 
 # Target selection for Rust and binutils (as & ld).
+#
+# TODO: Some of this duplicates information in .cargo/config. Is it
+# possible to unravel this?
 BINUTILS_TARGET ?= riscv32-unknown-elf-
 RUST_TARGET     ?= riscv32imc-unknown-none-elf
 RUST_BUILD      ?= release
@@ -101,12 +104,8 @@ all: $(subst -,_,$(EXAMPLES:%=%.elf))
 # TODO: this builds all targets on each execution. Using --lib doesn't
 # work, find a solution to build only the single staticlib needed. For
 # now this doesn't matter, since there's only one target anyway.
-#
-# TODO: Cargo doesn't seem to honor the `build.target` setting in the
-# manifest. Why not? Should it be set there or here? Currently, it's
-# set in both. Ew.
 $(CRATE_LIB_DIR)/lib%.a: $(shell find . -name '*.rs' -or -name Cargo.toml)
-	cargo build --target $(RUST_TARGET) --$(RUST_BUILD) && touch $@
+	cargo build --$(RUST_BUILD) && touch $@
 
 # A cheap rule to update the earlgrey-registers crate when the upstream
 # SVD file changes.

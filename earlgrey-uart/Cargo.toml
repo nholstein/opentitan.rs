@@ -11,12 +11,6 @@ verilator = []
 [lib]
 crate-type = ["staticlib"]
 
-[build]
-target = "riscv32imac-unknown-none-elf"
-
-[target.riscv32imac-unknown-none-elf]
-linker = "riscv32-unknown-elf-gcc"
-
 [dependencies]
 cast = { version = "0.2.3", default-features = false }
 earlgrey-registers = { path="../earlgrey-registers", version="0.1.0" }
