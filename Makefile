@@ -36,6 +36,7 @@ EXAMPLES ?= \
 BINUTILS_TARGET ?= riscv32-unknown-elf-
 RUST_TARGET     ?= riscv32imc-unknown-none-elf
 RUST_BUILD      ?= release
+SVD2RUST        ?= svd2rust
 CRATE_LIB_DIR   := target/$(RUST_TARGET)/$(RUST_BUILD)
 
 # Path to the SVD file defining the registers. Used to generate the
@@ -53,6 +54,15 @@ RISCV_STRIP ?= $(BINUTILS_TARGET)strip
 RISCV_ASFLAGS    ?= -march=rv32imc -mabi=ilp32
 RISCV_LDFLAGS    ?= -static --no-dynamic-linker -nostdlib --gc-sections
 RISCV_STRIPFLAGS ?= -sD
+
+# `svd2rust` emits some lints which are no longer supported in rustc.
+# The converted Rust lib.rs will be pruned of all matching allow/deny
+# lints:
+SVD2RUST_TRIM_LINTS ?= \
+	legacy_directory_ownership \
+	plugin_as_library \
+	safe_extern_statics \
+	unions_with_drop_fields \
 
 # Set the default target: .elf files for all examples.
 #
@@ -107,10 +117,28 @@ all: $(subst -,_,$(EXAMPLES:%=%.elf))
 $(CRATE_LIB_DIR)/lib%.a: $(shell find . -name '*.rs' -or -name Cargo.toml)
 	cargo build --$(RUST_BUILD) && touch $@
 
+# Make includes a `join` function. It lies.
+#
+# `car` and `cdr` mimic the LISP funtions of the same name. In a more
+# sane world this would be something like:
+#   strjoin(sep, words) = words[0] + (if words[1:] != "" then: sep + strjoin(sep, words[1:]))
+car = $(firstword $1)
+cdr = $(wordlist 2,$(words $1),$1)
+strjoin = $(call car,$2)$(if $(call cdr,$2),$1$(call strjoin,$1,$(call cdr,$2)))
+
 # A cheap rule to update the earlgrey-registers crate when the upstream
 # SVD file changes.
+#
+# We run `sed` over the resulting file to trim any `allow`/`deny` lints
+# which are out-of-date. Without this the generated code emits warnings
+# for the unknown lints.
+earlgrey-registers/lib.rs: LINT_MATCH := ($(call strjoin,|,$(SVD2RUST_TRIM_LINTS)))
+earlgrey-registers/lib.rs: LINT_REGEX := ^\#!\[(allow|deny)\($(LINT_MATCH)\)]$$
 earlgrey-registers/lib.rs: $(realpath $(OPENTITAN_DIR)/$(EARLGREY_SVD))
-	(cd $(@D) && svd2rust --target riscv -i $< && rustfmt $(@F))
+	@# this incantation is ugly enough to hide...
+	@echo $(SVD2RUST) --target riscv -i $< -o $@
+	@(cd $(@D) && $(SVD2RUST) --target riscv -i $< && rustfmt $(@F)) && \
+		sed -i "" -Ee '/$(LINT_REGEX)/d' $@
 
 # make deletes the compiled Rust library archive unless told otherwise.
 .SECONDARY: flash_crt.o \
