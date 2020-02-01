@@ -1,7 +1,6 @@
 /target/
 /binutils-*.tar.xz
 /binutils-*/
-/riscv32-unknown-elf-as
-/riscv32-unknown-elf-ld
+/riscv32-unknown-elf-*
 *.elf
 *.o

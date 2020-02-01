@@ -44,10 +44,12 @@ EARLGREY_SVD    := hw/top_earlgrey/data/top_earlgrey.svd
 #
 # We avoid using the make AS and LD variables, or their associated
 # default rules to avoid stepping on the toes of the toolchain build.
-RISCV_AS ?= $(BINUTILS_TARGET)as
-RISCV_LD ?= $(BINUTILS_TARGET)ld
-RISCV_ASFLAGS ?= -march=rv32imc -mabi=ilp32
-RISCV_LDFLAGS ?= -static --no-dynamic-linker -nostdlib
+RISCV_AS    ?= $(BINUTILS_TARGET)as
+RISCV_LD    ?= $(BINUTILS_TARGET)ld
+RISCV_STRIP ?= $(BINUTILS_TARGET)strip
+RISCV_ASFLAGS    ?= -march=rv32imc -mabi=ilp32
+RISCV_LDFLAGS    ?= -static --no-dynamic-linker -nostdlib --gc-sections
+RISCV_STRIPFLAGS ?= -sD
 
 # Set the default target: .elf files for all examples.
 #
@@ -77,6 +79,10 @@ all: $(subst -,_,$(EXAMPLES:%=%.elf))
 		$(filter-out %.ld %.a,$^) \
 		$(addprefix -L,$(dir $(filter %.a,$^))) \
 		$(patsubst lib%.a,-l%,$(filter lib%.a,$(^F)))
+
+# Strip the elf binary. This drops the binary size by a few orders of
+# magnitude, and brings the total size in-line with C binaries.
+%.stripped: %.elf; $(RISCV_STRIP) $(RISCV_STRIPFLAGS) $< -o $@
 
 # Tie the make build into Cargo's. We do our best to recreate the full
 # dependency tree on the Rust source, but this might be better as a
@@ -116,14 +122,15 @@ clean: ; $(RM) flash_crt.o $(subst -,_,$(EXAMPLES:%=%.elf)); cargo clean
 
 # Instructions to build a local copy of the binutils `as` and `ld` tools
 # to allow linking the Rust libraries into a full binary.
-toolchain: $(addprefix $(BINUTILS_TARGET),as ld)
+toolchain: $(addprefix $(BINUTILS_TARGET),as ld strip)
 
 BINUTILS_VERSION ?= 2.33.1
 PARALLEL_BUILD   ?= $(or $(shell (nproc || sysctl -n hw.ncpu) 2>/dev/null),2)
 BINUTILS_DIR     := binutils-$(BINUTILS_VERSION)
 
-$(BINUTILS_TARGET)as: $(BINUTILS_DIR)/build/gas/as-new; cp $< $@
-$(BINUTILS_TARGET)ld: $(BINUTILS_DIR)/build/ld/ld-new;  cp $< $@
+$(BINUTILS_TARGET)as:    $(BINUTILS_DIR)/build/gas/as-new;         cp $< $@
+$(BINUTILS_TARGET)ld:    $(BINUTILS_DIR)/build/ld/ld-new;          cp $< $@
+$(BINUTILS_TARGET)strip: $(BINUTILS_DIR)/build/binutils/strip-new; cp $< $@
 $(BINUTILS_DIR)/build/%-new: $(BINUTILS_DIR)/build/Makefile
 	$(MAKE) -j$(PARALLEL_BUILD) -C $(<D) all-$(notdir $(*D))
 $(BINUTILS_DIR)/build/Makefile: $(BINUTILS_DIR)/configure | $(BINUTILS_DIR)/build
