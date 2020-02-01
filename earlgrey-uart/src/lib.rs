@@ -30,14 +30,15 @@ fn abort() -> ! {
 extern "C"
 fn main() -> ! {
 	let peripherals = earlgrey_registers::Peripherals::take().unwrap();
-	let uart = UART::new(&peripherals, UART::DEFAULT_BAUD).unwrap();
+	let mut uart = UART::new(&peripherals, UART::DEFAULT_BAUD).unwrap();
 
 	// Ensure we can access other modules within peripherals
-	let _aes = &peripherals.AES;
+	let mut _aes = &peripherals.AES;
 
 	uart.write(&"Hello, Rust\r\n");
 
 	loop {
-		uart.put_byte(uart.get_byte());
+		let byte = uart.get_byte();
+		uart.put_byte(byte);
 	}
 }

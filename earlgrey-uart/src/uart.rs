@@ -41,12 +41,12 @@ impl UART<'_> {
 	pub const DEFAULT_BAUD: u32 = BAUD_RATE;
 
 	pub fn new<'a>(peripherals: &'a earlgrey_registers::Peripherals, baud: u32) -> Result<UART, Error> {
-		let uart = UART(&peripherals.UART);
+		let mut uart = UART(&peripherals.UART);
 		uart.init(baud, false, false)?;
 		Ok(uart)
 	}
 
-	fn init(&self, baud: u32, enable_parity: bool, odd_parity: bool) -> Result<(), Error> {
+	fn init(&mut self, baud: u32, enable_parity: bool, odd_parity: bool) -> Result<(), Error> {
 		let nco = ((baud as u64) << 20) / (CLOCK_FREQ_HZ as u64);
 		// This would typically use TryFrom but it isn't available
 		// in a nostd crate.
@@ -78,21 +78,21 @@ impl UART<'_> {
 		Ok(())
 	}
 
-	pub fn put_byte(&self, byte: u8) {
+	pub fn put_byte(&mut self, byte: u8) {
 		while self.0.status.read().txfull().bit() {
 		}
 
 		self.0.wdata.write(|w| unsafe { w.bits(byte) })
 	}
 
-	pub fn get_byte(&self) -> u8 {
+	pub fn get_byte(&mut self) -> u8 {
 		while self.0.status.read().rxempty().bit() {
 		}
 
 		self.0.rdata.read().bits()
 	}
 
-	pub fn write(&self, message: &str) {
+	pub fn write(&mut self, message: &str) {
 		for byte in message.bytes() {
 			self.put_byte(byte);
 		}
