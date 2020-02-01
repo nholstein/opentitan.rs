@@ -16,6 +16,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 
 [[package]]
+name = "cast"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b9434b9a5aa1450faa3f9cb14ea0e8c53bb5d2b3c1bfd1ab4fc03e9f33fbfb0"
+dependencies = [
+ "rustc_version",
+]
+
+[[package]]
 name = "earlgrey-registers"
 version = "0.1.0"
 dependencies = [
@@ -28,6 +37,7 @@ dependencies = [
 name = "earlgrey-uart"
 version = "0.1.0"
 dependencies = [
+ "cast",
  "earlgrey-registers",
 ]
 

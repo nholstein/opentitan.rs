@@ -1,6 +1,7 @@
-extern crate earlgrey_registers;
+use cast;
+use core::fmt;
 
-//use std::convert::TryFrom;
+extern crate earlgrey_registers;
 
 #[cfg(ibex = "verilator")]
 const CLOCK_FREQ_HZ: u32 = 500_000;
@@ -14,64 +15,87 @@ const BAUD_RATE: u32 = 9600;
 #[cfg(not(ibex = "verilator"))]
 const BAUD_RATE: u32 = 230400;
 
-pub fn uart_echo() {
-	let peripherals = earlgrey_registers::Peripherals::take().unwrap();
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Error {
+	// Conversion error in baud rate
+	InvalidBaudRate(cast::Error),
+}
 
-	let uart = &peripherals.UART;
-	uart_init(uart, BAUD_RATE, true, true);
-	uart_write(uart, &"Hello, Rust");
-
-	loop {
-		let c = uart_getc(uart);
-		uart_putc(uart, c);
+impl fmt::Display for Error {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", match self {
+			Error::InvalidBaudRate(_) => "unsupported baud rate",
+		})
 	}
 }
 
-fn uart_init(uart: &earlgrey_registers::UART, baud: u32, enable_parity: bool, odd_parity: bool) {
-	let nco = ((BAUD_RATE as u64) << 20) / (CLOCK_FREQ_HZ as u64);
-	let nco = nco as u16;
+impl From<cast::Error> for Error {
+	fn from(err: cast::Error) -> Error {
+		Error::InvalidBaudRate(err)
+	}
+}
 
-	uart.ctrl.write(|w| unsafe {
-		w.nco().bits(nco);
-		w.tx().set_bit();
-		w.rx().set_bit();
+pub struct UART<'a>(&'a earlgrey_registers::UART);
 
-		if enable_parity {
-			w.parity_en().set_bit();
+impl UART<'_> {
+	pub const DEFAULT_BAUD: u32 = BAUD_RATE;
+
+	pub fn new<'a>(peripherals: &'a earlgrey_registers::Peripherals, baud: u32) -> Result<UART, Error> {
+		let uart = UART(&peripherals.UART);
+		uart.init(BAUD_RATE, true, true)?;
+		Ok(uart)
+	}
+
+	fn init(&self, baud: u32, enable_parity: bool, odd_parity: bool) -> Result<(), Error> {
+		let nco = ((baud as u64) << 20) / (CLOCK_FREQ_HZ as u64);
+		// This would typically use TryFrom but it isn't available
+		// in a nostd crate.
+		let nco = cast::u16(nco)?;
+
+		self.0.intr_enable.write(|w| w);
+		self.0.ctrl.write(|w| {
+			unsafe { w.nco().bits(nco); }
+
+			w.tx().set_bit();
+			w.rx().set_bit();
+
+			if enable_parity {
+				w.parity_en().set_bit();
+			}
+
+			if odd_parity {
+				w.parity_odd().set_bit();
+			}
+
+			w
+		});
+
+		self.0.fifo_ctrl.write(|w| {
+			w.rxrst().set_bit();
+			w.txrst().set_bit()
+		});
+
+		Ok(())
+	}
+
+	pub fn putc(&self, c: char) {
+		while self.0.status.read().txfull().bit() {
 		}
 
-		if odd_parity {
-			w.parity_odd().set_bit();
+		let u = c as u8;
+		self.0.wdata.write(|w| unsafe { w.bits(u) })
+	}
+
+	pub fn write(&self, message: &str) {
+		for b in message.chars() {
+			self.putc(b);
+		}
+	}
+
+	pub fn getc(&self) -> char {
+		while self.0.status.read().rxempty().bit() {
 		}
 
-		w
-	});
-
-	uart.fifo_ctrl.write(|w| {
-		w.rxrst().set_bit();
-		w.txrst().set_bit()
-	});
-
-	uart.intr_enable.write(|w| w);
-}
-
-fn uart_putc(uart: &earlgrey_registers::UART, c: char) {
-	while uart.status.read().txfull().bit() {
+		self.0.rdata.read().bits() as char
 	}
-
-	let u = c as u8;
-	uart.wdata.write(|w| unsafe { w.bits(u) })
-}
-
-fn uart_write(uart: &earlgrey_registers::UART, message: &str) {
-	for b in message.chars() {
-		uart_putc(uart, b);
-	}
-}
-
-fn uart_getc(uart: &earlgrey_registers::UART) -> char {
-	while uart.status.read().rxempty().bit() {
-	}
-
-	uart.rdata.read().bits() as char
 }
