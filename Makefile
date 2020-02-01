@@ -35,6 +35,11 @@ RUST_TARGET     ?= riscv32imc-unknown-none-elf
 RUST_BUILD      ?= release
 CRATE_LIB_DIR   := target/$(RUST_TARGET)/$(RUST_BUILD)
 
+# Path to the SVD file defining the registers. Used to generate the
+# `earlgrey-registers` crate.
+OPENTITAN_DIR   ?= ../opentitan
+EARLGREY_SVD    := hw/top_earlgrey/data/top_earlgrey.svd
+
 # Configure binutils for building an Ibex binary.
 #
 # We avoid using the make AS and LD variables, or their associated
@@ -90,8 +95,17 @@ all: $(subst -,_,$(EXAMPLES:%=%.elf))
 # TODO: this builds all targets on each execution. Using --lib doesn't
 # work, find a solution to build only the single staticlib needed. For
 # now this doesn't matter, since there's only one target anyway.
+#
+# TODO: Cargo doesn't seem to honor the `build.target` setting in the
+# manifest. Why not? Should it be set there or here? Currently, it's
+# set in both. Ew.
 $(CRATE_LIB_DIR)/lib%.a: $(shell find . -name '*.rs' -or -name Cargo.toml)
 	cargo build --target $(RUST_TARGET) --$(RUST_BUILD) && touch $@
+
+# A cheap rule to update the earlgrey-registers crate when the upstream
+# SVD file changes.
+earlgrey-registers/lib.rs: $(realpath $(OPENTITAN_DIR)/$(EARLGREY_SVD))
+	(cd $(@D) && svd2rust --target riscv -i $< && rustfmt $(@F))
 
 # make deletes the compiled Rust library archive unless told otherwise.
 .SECONDARY: flash_crt.o \

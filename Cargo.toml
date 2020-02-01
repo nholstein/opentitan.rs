@@ -3,3 +3,6 @@ members = [
   "earlgrey-registers",
   "earlgrey-uart",
 ]
+
+[build]
+target = "riscv32imac-unknown-none-elf"
