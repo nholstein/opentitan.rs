@@ -1,5 +1,2 @@
 [build]
-target = "riscv32imc-unknown-none-elf"
-
-[target.riscv32imc-unknown-none-elf]
-linker = "./riscv32-unknown-elf-ld.sh"
+target = ".cargo/riscv32imc-unknown-none-elf.json"

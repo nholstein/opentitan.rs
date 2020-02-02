@@ -1,0 +1,47 @@
+{
+  "abi-blacklist": [
+    "cdecl",
+    "stdcall",
+    "fastcall",
+    "vectorcall",
+    "thiscall",
+    "aapcs",
+    "win64",
+    "sysv64",
+    "ptx-kernel",
+    "msp430-interrupt",
+    "x86-interrupt",
+    "amdgpu-kernel"
+  ],
+  "arch": "riscv32",
+  "atomic-cas": false,
+  "cpu": "generic-rv32",
+  "data-layout": "e-m:e-p:32:32-i64:64-n32-S128",
+  "eliminate-frame-pointer": false,
+  "emit-debug-gdb-scripts": false,
+  "env": "",
+  "exe-suffix": ".elf",
+  "executables": true,
+  "features": "+m,+c",
+  "is-builtin": true,
+  "linker": "riscv32-unknown-elf-ld",
+  "linker-flavor": "ld",
+  "linker-is-gnu": true,
+  "pre-link-args": {
+    "ld": [
+      "-Tflash_link.ld",
+      "flash_crt.o"
+    ]
+  },
+  "llvm-target": "riscv32",
+  "max-atomic-width": 0,
+  "main-nees-argc-argv": false,
+  "os": "none",
+  "panic-strategy": "abort",
+  "relocation-model": "static",
+  "target-c-int-width": "32",
+  "target-endian": "little",
+  "target-pointer-width": "32",
+  "trap-unreachable": true,
+  "vendor": "unknown"
+}
