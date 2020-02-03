@@ -29,8 +29,11 @@
   "linker-is-gnu": true,
   "pre-link-args": {
     "ld": [
-      "-Tflash_link.ld",
-      "flash_crt.o"
+      "-static",
+      "--no-dynamic-linker",
+      "-nostdlib",
+      "--gc-sections",
+      "-Tflash_link.ld"
     ]
   },
   "llvm-target": "riscv32",
