@@ -110,4 +110,8 @@ Outstanding questions:
 
  * Meson vs. Make?
 
+   I've spend some time playing around with trying to internalize as much of the build as possible into Cargo itself.
+   This involved some experimentation into various features of Cargo which in some instances aren't clearly documented.
+   I've written up [some notes from this](BUILD.md).
+
  * `svd2rust` doesn't propagate any comments/license through to the generated source. Is it worth adding this?

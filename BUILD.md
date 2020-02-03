@@ -1,13 +1,14 @@
 # Exploring Cargo cross-builds
 
-These are notes containing the highlights of experimentation into ways to
+These are notes recording results from experimentation into ways to
 perform bare-metal linking and customization of the Cargo build process.
 While Cargo is a powerful dependency manager and offers numerous
 features, its ability to perform customized linking as needed to run code
-on bare-meral OpenTitan `earlgrey` processors is intentionally limited.
+on bare-meral OpenTitan `earlgrey` processors is intentionally limited
+and awaiting stabilization.
 
 Since there is no standardized way to link these binaries, multiple
-alternative exist, with tradeoffs and advantages between them. Of the
+alternatives exist, with tradeoffs and advantages between them. Of the
 ones I investigated, the only clear-cut advantage I discovered was that
 use of `global_asm!()` from within Rust was consistently simpler than
 using a separate assembly file.
@@ -28,7 +29,7 @@ needs to be installed, or both `riscv32-unknown-elf-ld` and
 `riscv32-unknown-elf-gcc`.
 
 These must be installed separately from Rust, and are not available
-through Rust package management such as `rustup`.
+through Rust package management such as `rustup` or Cargo.
 
 In terms of complexity of the install, a GCC toolchain is far more
 complicated to build and install than just binutils. In fact, all that is
@@ -37,57 +38,8 @@ binutils suite with `strip`, `objdump`, `readelf`, ...etc is required.
 
 However, GCC isn't required. Particularly when combined with use of
 `global_asm!()` to define the CRT it provides no additional features over
-`ld`, and only increases the toolcahin installation cost.
-
-## Customizing the linker
-
-Linking a bare-metal binary requires two items not provided by `cargo`:
-
- * the linker script defining the system memory layout
-
-   This is passed with the `-T` option to GCC/ld.
-
- * the CRT and startup routines in assembly code
-
-   This must be assembled by either GCC or `as`. This can be a standalone
-   file or a macro using [`global_asm!()`](https://doc.rust-lang.org/beta/unstable-book/library-features/global-asm.html).
-   The second option is transparent to the linker and elminates the need
-   to use either GCC or `as`; the CRT is included automatically in the
-   compiled Rust objects passed to the linker.
-
-   A standalone assembly file likely needs preprocessing to strip out
-   comments. `cc -E` does this, but introduces one more dependency on
-   the developer's machine. In contrast, inline assembly in Rust may
-   include comments.
-
-   Additionally, a standlone assembly file must be build outside of the
-   normal Cargo flow. Whether this is prebuild by `make`, compiled by
-   `build.rs`, or included in the linker step, this introduces additional
-   complexity and dependency resolution. Use of `global_asm!()` defers
-   this work to Cargo's standard depedency tree.
-
-## Running strip/objdump
-
-This step could _theorectically_ be mixed into the customized linker
-command, but this is probably better left as an external step by `make`
-or `meson`.
-
-## Dependencies and integrating into a build system
-
-Rustc generates dependency files during its compilation step. These are
-in the `.d` format used by GCC to record its `#include` dependencies, and
-is essentially a pared-down set of `make` dependencies. This format is
-understood by some additional tools such as `ninja`. This could allow an
-external build manager to invoke `cargo` only when a build file has
-changed.
-
-Unfortunately, I only saw this generated a on per-crate basis, and did
-not include cross-crate dependencies. This means while it might be
-possible to know which Rust source files are used, there's no means to
-tell what then requires are rebuild.
-
-In practice, this might not matter. It might be sufficient to either
-call `cargo` when any Rust file changes, or simply on every build.
+`ld`, and only increases the toolchain installation cost, for no
+practical benefit I could identity.
 
 ## Places to customize a Cargo build
 
@@ -168,6 +120,60 @@ build:
        instead using `riscv32imc-unknown-none-elf`, even if the config
        JSON was identical.
 
+## Customizing the linker
+
+Linking a bare-metal binary requires two items not provided by `cargo`:
+
+ * the linker script defining the system memory layout
+
+   This is passed with the `-T` option to GCC/ld. Cargo makes it
+   surprisingly difficult to pass any option other than `-l` and `-L`,
+   adding this single argument to the `ld` command line requires jumping
+   through some hoops.
+
+ * the CRT and startup routines in assembly code
+
+   This must be assembled by either GCC or `as`. This can be a standalone
+   file or a macro using [`global_asm!()`](https://doc.rust-lang.org/beta/unstable-book/library-features/global-asm.html).
+   The second option is transparent to the linker and eliminates the need
+   to invoke an external assembler; the CRT is included automatically in
+   the compiled Rust objects passed to the linker.
+
+   A standalone assembly file likely needs preprocessing to strip out
+   comments. `gcc` or `cc -E - | as` do this, but introduces one more
+   dependency on the developer's machine. In contrast, inline assembly in
+   Rust may include comments as desired.
+
+   Additionally, a standlone assembly file must be built outside of the
+   normal Cargo flow. Whether this is prebuilt by `make`, compiled by
+   `build.rs`, or included in the linker step, this introduces additional
+   complexity and dependency resolution. Use of `global_asm!()` defers
+   this work to Cargo's standard depedency tree.
+
+## Running strip/objdump
+
+This step could _theorectically_ be mixed into the customized linker
+command, but this is probably better left as an external step by `make`
+or `meson`.
+
+## Dependencies and integration into a build system
+
+Rustc generates dependency files during its compilation step. These are
+in the `.d` format used by GCC to record its `#include` dependencies, and
+is essentially a pared-down set of `make` dependencies. This format is
+understood by some additional tools such as `ninja`. This could allow an
+external build manager to invoke `cargo` only when a build file has
+changed.
+
+Unfortunately, I only saw this generated a on per-crate basis, and this
+did not include cross-crate dependencies. Nor did I find any listing of
+all the generated dependency files. This means while it might be possible
+to know which Rust source files are used, there's no means to tell what
+then requires a rebuild outside of a `find target -name '*.d'`.
+
+In practice, this might not matter. It might be sufficient to either
+call `cargo` when any Rust file changes, or simply on every build.
+
 ## Cargo xbuild vs. rustup target install
 
 The two options listed above require different Rust installation steps.
@@ -194,6 +200,10 @@ cargo install cargo-xbuild
 The disadvantage of this option is that developers need to remeber to
 replace `cargo build` with `cargo xbuild`.
 
+The rustup method is run once, while installing a development system.
+Using `cargo xbuild` adds an additional small recompilation cost after
+every `cargo clean`.
+
 ## Methodoloy
 
 There are good sources of information available online for building
@@ -214,7 +224,7 @@ the following:
 Additionally, I used some simple scripts to help with testing.
 
 It is possible to view the output of a Cargo build script by telling
-Cargo to use very verbose output with `cargo build -vv`. It's easy to
+Cargo to use very-verbose output with `cargo build -vv`. It's easy to
 then print the command line and environment:
 
 ```
@@ -237,8 +247,8 @@ fn main() {
 ```
 
 It isn't as easy to glean data from the linking stage. Cargo and `rustc`
-seemed to hide its output, no matter how many `-v`s were given. To avoid
-this I wrote this data to files:
+seemed to hide its output, no matter how many `-v`s were given. To side
+step this I wrote this data to files:
 
 ```
 #!/bin/sh
