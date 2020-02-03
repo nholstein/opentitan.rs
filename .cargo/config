@@ -1,5 +1,12 @@
 [build]
-target = "riscv32imc-unknown-none-elf"
+# Select one of the following. It is also possible to specify the target
+# option given to cargo: `cargo build --target riscv32imc-unknown-none-elf`
+# or `cargo-xbuild --target .cargo/riscv32imc-unknown-none-elf.json`.
 
-[target.riscv32imc-unknown-none-elf]
-linker = "./riscv32-unknown-elf-ld.sh"
+# Use cargo-xbuild and full build target customization:
+target = ".cargo/riscv32imc-unknown-none-elf.json"
+
+# Use cargo-build, with a linker shell script:
+#target = "riscv32imc-unknown-none-elf"
+#[target.riscv32imc-unknown-none-elf]
+#linker = ".cargo/riscv32-unknown-elf-ld.sh"
